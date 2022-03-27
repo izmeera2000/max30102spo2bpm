@@ -34,7 +34,6 @@ MAX30105 particleSensor;
 
 #define MAX_BRIGHTNESS 255
 
-
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
 //Arduino Uno doesn't have enough SRAM to store 100 samples of IR led data and red led data in 32-bit format
 //To solve this problem, 16-bit MSB of the sampled data will be truncated. Samples become 16-bit data.
@@ -51,15 +50,15 @@ int8_t validSPO2; //indicator to show if the SPO2 calculation is valid
 int32_t heartRate; //heart rate value
 int8_t validHeartRate; //indicator to show if the heart rate calculation is valid
 
-//byte pulseLED = 11; //Must be on PWM pin
-//byte readLED = 13; //Blinks with each data read
+byte pulseLED = 11; //Must be on PWM pin
+byte readLED = 13; //Blinks with each data read
 
 void setup()
 {
   Serial.begin(115200); // initialize serial communication at 115200 bits per second:
 
-//  pinMode(pulseLED, OUTPUT);
-//  pinMode(readLED, OUTPUT);
+  pinMode(pulseLED, OUTPUT);
+  pinMode(readLED, OUTPUT);
 
   // Initialize sensor
   if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) //Use default I2C port, 400kHz speed
@@ -72,14 +71,14 @@ void setup()
   while (Serial.available() == 0) ; //wait until user presses a key
   Serial.read();
 
-//  byte ledBrightness = 60; //Options: 0=Off to 255=50mA
-//  byte sampleAverage = 4; //Options: 1, 2, 4, 8, 16, 32
-//  byte ledMode = 2; //Options: 1 = Red only, 2 = Red + IR, 3 = Red + IR + Green
-//  byte sampleRate = 100; //Options: 50, 100, 200, 400, 800, 1000, 1600, 3200
-//  int pulseWidth = 411; //Options: 69, 118, 215, 411
-//  int adcRange = 4096; //Options: 2048, 4096, 8192, 16384
+  byte ledBrightness = 60; //Options: 0=Off to 255=50mA
+  byte sampleAverage = 2; //Options: 1, 2, 4, 8, 16, 32
+  byte ledMode = 2; //Options: 1 = Red only, 2 = Red + IR, 3 = Red + IR + Green
+  byte sampleRate = 50; //Options: 50, 100, 200, 400, 800, 1000, 1600, 3200
+  int pulseWidth = 411; //Options: 69, 118, 215, 411
+  int adcRange = 4096; //Options: 2048, 4096, 8192, 16384
 
-  particleSensor.setup(); //Configure sensor with these settings
+  particleSensor.setup(ledBrightness, sampleAverage, ledMode, sampleRate, pulseWidth, adcRange); //Configure sensor with these settings
 }
 
 void loop()
@@ -121,7 +120,7 @@ void loop()
       while (particleSensor.available() == false) //do we have new data?
         particleSensor.check(); //Check the sensor for new data
 
-//      digitalWrite(readLED, !digitalRead(readLED)); //Blink onboard LED with every data read
+      digitalWrite(readLED, !digitalRead(readLED)); //Blink onboard LED with every data read
 
       redBuffer[i] = particleSensor.getRed();
       irBuffer[i] = particleSensor.getIR();
