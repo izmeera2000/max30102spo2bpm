@@ -1,151 +1,209 @@
+
 /*
-  Optical SP02 Detection (SPK Algorithm) using the MAX30105 Breakout
-  By: Nathan Seidle @ SparkFun Electronics
-  Date: October 19th, 2016
-  https://github.com/sparkfun/MAX30105_Breakout
+  Arduino-MAX30100 oximetry / heart rate integrated sensor library
+  Copyright (C) 2016  OXullo Intersecans <x@brainrapers.org>
 
-  This demo shows heart rate and SPO2 levels.
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
 
-  It is best to attach the sensor to your finger using a rubber band or other tightening 
-  device. Humans are generally bad at applying constant pressure to a thing. When you 
-  press your finger against the sensor it varies enough to cause the blood in your 
-  finger to flow differently which causes the sensor readings to go wonky.
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-  This example is based on MAXREFDES117 and RD117_LILYPAD.ino from Maxim. Their example
-  was modified to work with the SparkFun MAX30105 library and to compile under Arduino 1.6.11
-  Please see license file for more info.
-
-  Hardware Connections (Breakoutboard to Arduino):
-  -5V = 5V (3.3V is allowed)
-  -GND = GND
-  -SDA = A4 (or SDA)
-  -SCL = A5 (or SCL)
-  -INT = Not connected
- 
-  The MAX30105 Breakout can handle 5V or 3.3V I2C logic. We recommend powering the board with 5V
-  but it will also run at 3.3V.
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <Adafruit_GFX.h>        //OLED libraries
+#include <Adafruit_SSD1306.h>
 #include <Wire.h>
-#include "MAX30105.h"
-#include "spo2_algorithm.h"
+#include "MAX30100_PulseOximeter.h"
+#include <ESP8266WiFi.h>  // wifi
+#include <ThingSpeak.h>   // link to thingspeak
 
-MAX30105 particleSensor;
+#define REPORTING_PERIOD_MS     1000
 
-#define MAX_BRIGHTNESS 255
+// PulseOximeter is the higher level interface to the sensor
+// it offers:
+//  * beat detection reporting
+//  * heart rate calculation
+//  * SpO2 (oxidation level) calculation
+PulseOximeter pox;
 
-#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
-//Arduino Uno doesn't have enough SRAM to store 100 samples of IR led data and red led data in 32-bit format
-//To solve this problem, 16-bit MSB of the sampled data will be truncated. Samples become 16-bit data.
-uint16_t irBuffer[100]; //infrared LED sensor data
-uint16_t redBuffer[100];  //red LED sensor data
-#else
-uint32_t irBuffer[100]; //infrared LED sensor data
-uint32_t redBuffer[100];  //red LED sensor data
-#endif
+uint32_t tsLastReport = 0;
 
-int32_t bufferLength; //data length
-int32_t spo2; //SPO2 value
-int8_t validSPO2; //indicator to show if the SPO2 calculation is valid
-int32_t heartRate; //heart rate value
-int8_t validHeartRate; //indicator to show if the heart rate calculation is valid
+//wifi
+const char *ssid =  "KOMPUTER";
+const char *pass =  "";
 
-byte pulseLED = 11; //Must be on PWM pin
-byte readLED = 13; //Blinks with each data read
+WiFiClient client;
+long myChannelNumber = 1704864;
+const char myWriteAPIKey[] = "3VJIL0OO5404LO1Z";
+
+
+//OLED
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels 32
+#define OLED_RESET    -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET); //Declaring the display name (display)
+
+static const unsigned char PROGMEM logo2_bmp[] =
+{ 0x03, 0xC0, 0xF0, 0x06, 0x71, 0x8C, 0x0C, 0x1B, 0x06, 0x18, 0x0E, 0x02, 0x10, 0x0C, 0x03, 0x10,              //Logo2 and Logo3 are two bmp pictures that display on the OLED if called
+  0x04, 0x01, 0x10, 0x04, 0x01, 0x10, 0x40, 0x01, 0x10, 0x40, 0x01, 0x10, 0xC0, 0x03, 0x08, 0x88,
+  0x02, 0x08, 0xB8, 0x04, 0xFF, 0x37, 0x08, 0x01, 0x30, 0x18, 0x01, 0x90, 0x30, 0x00, 0xC0, 0x60,
+  0x00, 0x60, 0xC0, 0x00, 0x31, 0x80, 0x00, 0x1B, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x04, 0x00,
+};
+
+static const unsigned char PROGMEM logo3_bmp[] =
+{ 0x01, 0xF0, 0x0F, 0x80, 0x06, 0x1C, 0x38, 0x60, 0x18, 0x06, 0x60, 0x18, 0x10, 0x01, 0x80, 0x08,
+  0x20, 0x01, 0x80, 0x04, 0x40, 0x00, 0x00, 0x02, 0x40, 0x00, 0x00, 0x02, 0xC0, 0x00, 0x08, 0x03,
+  0x80, 0x00, 0x08, 0x01, 0x80, 0x00, 0x18, 0x01, 0x80, 0x00, 0x1C, 0x01, 0x80, 0x00, 0x14, 0x00,
+  0x80, 0x00, 0x14, 0x00, 0x80, 0x00, 0x14, 0x00, 0x40, 0x10, 0x12, 0x00, 0x40, 0x10, 0x12, 0x00,
+  0x7E, 0x1F, 0x23, 0xFE, 0x03, 0x31, 0xA0, 0x04, 0x01, 0xA0, 0xA0, 0x0C, 0x00, 0xA0, 0xA0, 0x08,
+  0x00, 0x60, 0xE0, 0x10, 0x00, 0x20, 0x60, 0x20, 0x06, 0x00, 0x40, 0x60, 0x03, 0x00, 0x40, 0xC0,
+  0x01, 0x80, 0x01, 0x80, 0x00, 0xC0, 0x03, 0x00, 0x00, 0x60, 0x06, 0x00, 0x00, 0x30, 0x0C, 0x00,
+  0x00, 0x08, 0x10, 0x00, 0x00, 0x06, 0x60, 0x00, 0x00, 0x03, 0xC0, 0x00, 0x00, 0x01, 0x80, 0x00
+};
+
+//LED
+#define LED_pin7 D7           // tentukan nama device pada pin
+#define LED_pin6 D6
+#define LED_pin5 D5
+
+
+
+// Callback (registered below) fired when a pulse is detected
+void onBeatDetected()
+{
+  Serial.println("Beat!");
+}
 
 void setup()
 {
-  Serial.begin(115200); // initialize serial communication at 115200 bits per second:
 
-  pinMode(pulseLED, OUTPUT);
-  pinMode(readLED, OUTPUT);
-
-  // Initialize sensor
-  if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) //Use default I2C port, 400kHz speed
+  //Thingspeak
+  Serial.begin(9600);
+  WiFi.begin(ssid, pass);
+  while (WiFi.status() != WL_CONNECTED)
   {
-    Serial.println(F("MAX30105 was not found. Please check wiring/power."));
-    while (1);
+    delay(200);
+    Serial.print("..");
+  }
+  Serial.println();
+  Serial.println("Congrats... NodeMCU is connected!");
+  Serial.println(WiFi.localIP());
+  // dht.begin();
+  ThingSpeak.begin(client);
+
+
+  //OLED
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C); //Start the OLED display
+  display.display();
+  delay(3000);
+  Serial.begin(115200);
+
+  //asalnya
+  Serial.begin(115200);
+
+  Serial.print("Initializing pulse oximeter..");
+
+  // Initialize the PulseOximeter instance
+  // Failures are generally due to an improper I2C wiring, missing power supply
+  // or wrong target chip
+  if (!pox.begin()) {
+    Serial.println("FAILED");
+    for (;;);
+  } else {
+    Serial.println("SUCCESS");
   }
 
-  Serial.println(F("Attach sensor to finger with rubber band. Press any key to start conversion"));
-  while (Serial.available() == 0) ; //wait until user presses a key
-  Serial.read();
+  // The default current for the IR LED is 50mA and it could be changed
+  //   by uncommenting the following line. Check MAX30100_Registers.h for all the
+  //   available options.
+  pox.setIRLedCurrent(MAX30100_LED_CURR_30_6MA);
 
-  byte ledBrightness = 60; //Options: 0=Off to 255=50mA
-  byte sampleAverage = 2; //Options: 1, 2, 4, 8, 16, 32
-  byte ledMode = 2; //Options: 1 = Red only, 2 = Red + IR, 3 = Red + IR + Green
-  byte sampleRate = 50; //Options: 50, 100, 200, 400, 800, 1000, 1600, 3200
-  int pulseWidth = 411; //Options: 69, 118, 215, 411
-  int adcRange = 4096; //Options: 2048, 4096, 8192, 16384
+  // Register a callback for the beat detection
+  pox.setOnBeatDetectedCallback(onBeatDetected);
 
-  particleSensor.setup(ledBrightness, sampleAverage, ledMode, sampleRate, pulseWidth, adcRange); //Configure sensor with these settings
+  //LED
+  pinMode(LED_pin7, OUTPUT);  // declara pin samada input @ output
+  pinMode(LED_pin6, OUTPUT);
+  pinMode(LED_pin5, OUTPUT);
+
 }
 
 void loop()
 {
-  bufferLength = 100; //buffer length of 100 stores 4 seconds of samples running at 25sps
+  // Make sure to call update as fast as possible
+  pox.update();
 
-  //read the first 100 samples, and determine the signal range
-  for (byte i = 0 ; i < bufferLength ; i++)
-  {
-    while (particleSensor.available() == false) //do we have new data?
-      particleSensor.check(); //Check the sensor for new data
+  // Asynchronously dump heart rate and oxidation levels to the serial
+  // For both, a value of 0 means "invalid"
+  if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
+    Serial.print("Heart rate:");
+    Serial.print(pox.getHeartRate());
+    Serial.print("bpm    SpO2:");  //"bpm / SpO2:"
+    Serial.print(pox.getSpO2());
+    Serial.println("%");
+    ThingSpeak.writeField(myChannelNumber, 1, pox.getHeartRate(), myWriteAPIKey);
+    ThingSpeak.writeField(myChannelNumber, 2, pox.getSpO2(), myWriteAPIKey);
+    tsLastReport = millis();
 
-    redBuffer[i] = particleSensor.getRed();
-    irBuffer[i] = particleSensor.getIR();
-    particleSensor.nextSample(); //We're finished with this sample so move to next sample
+    // tambah
+    //Thingspeak
+    //float h = dht.readHumidity();
+    //float t = dht.readTemperature();
+    //  Serial.println("Temperature: " + (String) t);
+    // Serial.println("Humidity: " + (String) h);
+    // ThingSpeak.writeField(myChannelNumber, 1, t, myWriteAPIKey);
+    // ThingSpeak.writeField(myChannelNumber, 2, h, myWriteAPIKey);
+    //  delay(2000);
 
-    Serial.print(F("red="));
-    Serial.print(redBuffer[i], DEC);
-    Serial.print(F(", ir="));
-    Serial.println(irBuffer[i], DEC);
-  }
 
-  //calculate heart rate and SpO2 after first 100 samples (first 4 seconds of samples)
-  maxim_heart_rate_and_oxygen_saturation(irBuffer, bufferLength, redBuffer, &spo2, &validSPO2, &heartRate, &validHeartRate);
+    //long irValue = pox.getIR();    //Reading the IR value it will permit us to know if there's a finger on the sensor or not
+    //Also detecting a heartbeat
+    //if(irValue > 7000){                                           //If a finger is detected
+    display.clearDisplay();                                   //Clear the display
+    display.drawBitmap(5, 5, logo2_bmp, 24, 21, WHITE);       //Draw the first bmp picture (little heart)
+    display.setTextSize(1);                                   //Near it display the average BPM you can display the BPM if you want
+    display.setTextColor(WHITE);
+    display.setCursor(50, 0);
+    display.println("BPM");
+    display.setCursor(50, 18);
+    display.println(pox.getHeartRate());
+    display.setCursor(90, 0);    //80,0
+    display.println("SpO2");
+    display.setCursor(90, 18);   // 82,18
+    display.println(pox.getSpO2());
 
-  //Continuously taking samples from MAX30102.  Heart rate and SpO2 are calculated every 1 second
-  while (1)
-  {
-    //dumping the first 25 sets of samples in the memory and shift the last 75 sets of samples to the top
-    for (byte i = 25; i < 100; i++)
+    display.display();
+
+    tone(15, 1000);                                       // set(0,1000) utk nodmcu. And tone the buzzer for a 100ms you can reduce it it will be better
+    delay(100);
+    noTone(15);
+
+
+    if (pox.getHeartRate() < 60)
     {
-      redBuffer[i - 25] = redBuffer[i];
-      irBuffer[i - 25] = irBuffer[i];
+      digitalWrite(LED_pin5, HIGH);  //LED MERAH on
+      digitalWrite(LED_pin7, LOW);  //LED HIJAU on
+      digitalWrite(LED_pin6, LOW);  //LED KUNING on
     }
-
-    //take 25 sets of samples before calculating the heart rate.
-    for (byte i = 75; i < 100; i++)
+    if (pox.getHeartRate() > 100)
     {
-      while (particleSensor.available() == false) //do we have new data?
-        particleSensor.check(); //Check the sensor for new data
-
-      digitalWrite(readLED, !digitalRead(readLED)); //Blink onboard LED with every data read
-
-      redBuffer[i] = particleSensor.getRed();
-      irBuffer[i] = particleSensor.getIR();
-      particleSensor.nextSample(); //We're finished with this sample so move to next sample
-
-      //send samples and calculation result to terminal program through UART
-      Serial.print(F("red="));
-      Serial.print(redBuffer[i], DEC);
-      Serial.print(F(", ir="));
-      Serial.print(irBuffer[i], DEC);
-
-      Serial.print(F(", HR="));
-      Serial.print(heartRate, DEC);
-
-      Serial.print(F(", HRvalid="));
-      Serial.print(validHeartRate, DEC);
-
-      Serial.print(F(", SPO2="));
-      Serial.print(spo2, DEC);
-
-      Serial.print(F(", SPO2Valid="));
-      Serial.println(validSPO2, DEC);
+      digitalWrite(LED_pin6, HIGH);  //LED KUNING on
+      digitalWrite(LED_pin5, LOW);  //LED MERAH on
+      digitalWrite(LED_pin7, LOW);  //LED HIJAU on
     }
-
-    //After gathering 25 new samples recalculate HR and SP02
-    maxim_heart_rate_and_oxygen_saturation(irBuffer, bufferLength, redBuffer, &spo2, &validSPO2, &heartRate, &validHeartRate);
+    if (pox.getHeartRate() > 60 && pox.getHeartRate() < 100)
+    {
+      digitalWrite(LED_pin7, HIGH);  //LED HIJAU on
+      digitalWrite(LED_pin5, LOW);  //LED MERAH on
+      digitalWrite(LED_pin6, LOW);  //LED KUNING on
+    }
   }
 }
