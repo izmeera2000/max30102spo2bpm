@@ -22,7 +22,7 @@
 #include <Wire.h>
 #include "MAX30100_PulseOximeter.h"
 #include <ESP8266WiFi.h>  // wifi
-#include <ThingSpeak.h>   // link to thingspeak
+//#include <ThingSpeak.h>   // link to thingspeak
 
 #define REPORTING_PERIOD_MS     1000
 
@@ -97,7 +97,7 @@ void setup()
   Serial.println("Congrats... NodeMCU is connected!");
   Serial.println(WiFi.localIP());
   // dht.begin();
-  ThingSpeak.begin(client);
+//  ThingSpeak.begin(client);
 
 
   //OLED
@@ -140,17 +140,18 @@ void loop()
 {
   // Make sure to call update as fast as possible
   pox.update();
-
+  float BPM = pox.getHeartRate();
+  uint8_t  SPO2 = pox.getSpO2();
   // Asynchronously dump heart rate and oxidation levels to the serial
   // For both, a value of 0 means "invalid"
   if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
     Serial.print("Heart rate:");
-    Serial.print(pox.getHeartRate());
+    Serial.print(BPM);
     Serial.print("bpm    SpO2:");  //"bpm / SpO2:"
-    Serial.print(pox.getSpO2());
+    Serial.print(SPO2);
     Serial.println("%");
-    ThingSpeak.writeField(myChannelNumber, 1, pox.getHeartRate(), myWriteAPIKey);
-    ThingSpeak.writeField(myChannelNumber, 2, pox.getSpO2(), myWriteAPIKey);
+//    ThingSpeak.writeField(myChannelNumber, 1, pox.getHeartRate(), myWriteAPIKey);
+//    ThingSpeak.writeField(myChannelNumber, 2, pox.getSpO2(), myWriteAPIKey);
     tsLastReport = millis();
 
     // tambah
@@ -164,7 +165,7 @@ void loop()
     //  delay(2000);
 
 
-    //long irValue = pox.getIR();    //Reading the IR value it will permit us to know if there's a finger on the sensor or not
+//    long irValue = pox.getIR();    //Reading the IR value it will permit us to know if there's a finger on the sensor or not
     //Also detecting a heartbeat
     //if(irValue > 7000){                                           //If a finger is detected
     display.clearDisplay();                                   //Clear the display
@@ -174,11 +175,11 @@ void loop()
     display.setCursor(50, 0);
     display.println("BPM");
     display.setCursor(50, 18);
-    display.println(pox.getHeartRate());
+    display.println(BPM);
     display.setCursor(90, 0);    //80,0
     display.println("SpO2");
     display.setCursor(90, 18);   // 82,18
-    display.println(pox.getSpO2());
+    display.println(SPO2);
 
     display.display();
 
@@ -187,19 +188,19 @@ void loop()
     noTone(15);
 
 
-    if (pox.getHeartRate() < 60)
+    if (BPM < 60)
     {
       digitalWrite(LED_pin5, HIGH);  //LED MERAH on
       digitalWrite(LED_pin7, LOW);  //LED HIJAU on
       digitalWrite(LED_pin6, LOW);  //LED KUNING on
     }
-    if (pox.getHeartRate() > 100)
+    if (BPM > 100)
     {
       digitalWrite(LED_pin6, HIGH);  //LED KUNING on
       digitalWrite(LED_pin5, LOW);  //LED MERAH on
       digitalWrite(LED_pin7, LOW);  //LED HIJAU on
     }
-    if (pox.getHeartRate() > 60 && pox.getHeartRate() < 100)
+    if (BPM > 60 && BPM < 100)
     {
       digitalWrite(LED_pin7, HIGH);  //LED HIJAU on
       digitalWrite(LED_pin5, LOW);  //LED MERAH on
