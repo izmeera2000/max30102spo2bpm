@@ -1,136 +1,133 @@
-#include <TinyGPS++.h>
+#include <TinyGPS++.h> // library for GPS module
 #include <SoftwareSerial.h>
 #include <ESP8266WiFi.h>
-
-TinyGPSPlus gps;
-SoftwareSerial SerialGPS(4, 5); 
-
-const char* ssid = "OPPORTUNITY";
-const char* password = "12345679";
-
-float Latitude , Longitude;
+TinyGPSPlus gps;  // The TinyGPS++ object
+SoftwareSerial ss(4, 5); // The serial connection to the GPS device
+const char* ssid = "Onlilo_SP"; //ssid of your wifi
+const char* password = "ArduinoUno"; //password of your wifi
+float latitude , longitude;
 int year , month , date, hour , minute , second;
-String DateString , TimeString , LatitudeString , LongitudeString;
-
-
+String date_str , time_str , lat_str , lng_str;
+int pm;
 WiFiServer server(80);
+
 void setup()
 {
   Serial.begin(115200);
-  SerialGPS.begin(115200);
+  ss.begin(9600);
   Serial.println();
-  Serial.print("Connecting");
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED)
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password); //connecting to wifi
+  while (WiFi.status() != WL_CONNECTED)// while wifi not connected
   {
     delay(500);
-    Serial.print(".");
+    Serial.print("."); //print "...."
   }
   Serial.println("");
   Serial.println("WiFi connected");
-
   server.begin();
   Serial.println("Server started");
-  Serial.println(WiFi.localIP());
+  Serial.println(WiFi.localIP());  // Print the IP address
 }
+
 
 void loop()
 {
-  while (SerialGPS.available() > 0)
-    if (gps.encode(SerialGPS.read()))
+  while (ss.available() > 0) //while data is available
+    if (gps.encode(ss.read())) //read gps data
     {
-      if (gps.location.isValid())
+      if (gps.location.isValid()) //check whether gps location is valid
       {
-        Latitude = gps.location.lat();
-        LatitudeString = String(Latitude , 6);
-        Longitude = gps.location.lng();
-        LongitudeString = String(Longitude , 6);
+        latitude = gps.location.lat();
+        lat_str = String(latitude , 6); // latitude location is stored in a string
+        longitude = gps.location.lng();
+        lng_str = String(longitude , 6); //longitude location is stored in a string
       }
-
-      if (gps.date.isValid())
+      if (gps.date.isValid()) //check whether gps date is valid
       {
-        DateString = "";
+        date_str = "";
         date = gps.date.day();
         month = gps.date.month();
         year = gps.date.year();
-
         if (date < 10)
-        DateString = '0';
-        DateString += String(date);
-
-        DateString += " / ";
+          date_str = '0';
+        date_str += String(date);// values of date,month and year are stored in a string
+        date_str += " / ";
 
         if (month < 10)
-        DateString += '0';
-        DateString += String(month);
-        DateString += " / ";
-
+          date_str += '0';
+        date_str += String(month); // values of date,month and year are stored in a string
+        date_str += " / ";
         if (year < 10)
-        DateString += '0';
-        DateString += String(year);
+          date_str += '0';
+        date_str += String(year); // values of date,month and year are stored in a string
       }
-
-      if (gps.time.isValid())
+      if (gps.time.isValid())  //check whether gps time is valid
       {
-        TimeString = "";
-        hour = gps.time.hour()+ 5; //adjust UTC
+        time_str = "";
+        hour = gps.time.hour();
         minute = gps.time.minute();
         second = gps.time.second();
-    
+        minute = (minute + 30); // converting to IST
+        if (minute > 59)
+        {
+          minute = minute - 60;
+          hour = hour + 1;
+        }
+        hour = (hour + 5) ;
+        if (hour > 23)
+          hour = hour - 24;   // converting to IST
+        if (hour >= 12)  // checking whether AM or PM
+          pm = 1;
+        else
+          pm = 0;
+        hour = hour % 12;
         if (hour < 10)
-        TimeString = '0';
-        TimeString += String(hour);
-        TimeString += " : ";
-
+          time_str = '0';
+        time_str += String(hour); //values of hour,minute and time are stored in a string
+        time_str += " : ";
         if (minute < 10)
-        TimeString += '0';
-        TimeString += String(minute);
-        TimeString += " : ";
-
+          time_str += '0';
+        time_str += String(minute); //values of hour,minute and time are stored in a string
+        time_str += " : ";
         if (second < 10)
-        TimeString += '0';
-        TimeString += String(second);
+          time_str += '0';
+        time_str += String(second); //values of hour,minute and time are stored in a string
+        if (pm == 1)
+          time_str += " PM ";
+        else
+          time_str += " AM ";
       }
-
     }
-  WiFiClient client = server.available();
+ 
+ WiFiClient client = server.available(); // Check if a client has connected
   if (!client)
   {
     return;
   }
-
-  //Response
-  String s = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n <!DOCTYPE html> <html> <head> <title>NEO-6M GPS Readings</title> <style>";
-  s += "table, th, td {border: 1px solid blue;} </style> </head> <body> <h1  style=";
+  // Prepare the response
+  String s = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n <!DOCTYPE html> <html> <head> <title>GPS DATA</title> <style>";
+  s += "a:link {background-color: YELLOW;text-decoration: none;}";
+  s += "table, th, td </style> </head> <body> <h1  style=";
   s += "font-size:300%;";
-  s += " ALIGN=CENTER>NEO-6M GPS Readings</h1>";
+  s += " ALIGN=CENTER> GPS DATA</h1>";
   s += "<p ALIGN=CENTER style=""font-size:150%;""";
   s += "> <b>Location Details</b></p> <table ALIGN=CENTER style=";
   s += "width:50%";
   s += "> <tr> <th>Latitude</th>";
   s += "<td ALIGN=CENTER >";
-  s += LatitudeString;
+  s += lat_str;
   s += "</td> </tr> <tr> <th>Longitude</th> <td ALIGN=CENTER >";
-  s += LongitudeString;
+  s += lng_str;
   s += "</td> </tr> <tr>  <th>Date</th> <td ALIGN=CENTER >";
-  s += DateString;
+  s += date_str;
   s += "</td></tr> <tr> <th>Time</th> <td ALIGN=CENTER >";
-  s += TimeString;
+  s += time_str;
   s += "</td>  </tr> </table> ";
  
-  
-  if (gps.location.isValid())
-  {
-    s += "<p align=center><a style=""color:RED;font-size:125%;"" href=""http://maps.google.com/maps?&z=15&mrt=yp&t=k&q=";
-    s += LatitudeString;
-    s += "+";
-    s += LongitudeString;
-    s += """ target=""_top"">Click here</a> to open the location in Google Maps.</p>";
-  }
+  s += "</body> </html>"
 
-  s += "</body> </html> \n";
-
-  client.print(s);
+  client.print(s); // all the values are send to the webpage
   delay(100);
-
 }
