@@ -126,7 +126,7 @@ void loop()
   s += time_str;
   s += "</td>  </tr> </table> ";
  
-  s += "</body> </html>"
+  s += "</body> </html>";
 
   client.print(s); // all the values are send to the webpage
   delay(100);
