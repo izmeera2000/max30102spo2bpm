@@ -22,6 +22,8 @@
 #include <Wire.h>
 #include "MAX30100_PulseOximeter.h"
 #include <ESP8266WiFi.h>  // wifi
+#include <SoftwareSerial.h>
+#include <TinyGPS++.h>
 //#include <ThingSpeak.h>   // link to thingspeak
 
 #define REPORTING_PERIOD_MS     1000
@@ -36,12 +38,16 @@ PulseOximeter pox;
 uint32_t tsLastReport = 0;
 
 //wifi
-const char *ssid =  "KOMPUTER";
-const char *pass =  "";
-
+const char *ssid =  "OPPORTUNITY";
+const char *pass =  "12345679";
+TinyGPSPlus gps;
+SoftwareSerial SerialGPS(2, 0);
 WiFiClient client;
 long myChannelNumber = 1704864;
 const char myWriteAPIKey[] = "3VJIL0OO5404LO1Z";
+float Latitude , Longitude;
+int year , month , date, hour , minute , second;
+String DateString , TimeString , LatitudeString , LongitudeString;
 
 
 //OLED
@@ -87,7 +93,9 @@ void setup()
 
 
   //Thingspeak
-  Serial.begin(9600);
+  SerialGPS.begin(9600);
+
+  Serial.begin(115200);
   WiFi.begin(ssid, pass);
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -98,17 +106,17 @@ void setup()
   Serial.println("Congrats... NodeMCU is connected!");
   Serial.println(WiFi.localIP());
   // dht.begin();
-//  ThingSpeak.begin(client);
+  //  ThingSpeak.begin(client);
 
 
   //OLED
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C); //Start the OLED display
   display.display();
   delay(3000);
-  Serial.begin(115200);
+  //  Serial.begin(115200);
 
   //asalnya
-  Serial.begin(115200);
+  //  Serial.begin(115200);
 
   Serial.print("Initializing pulse oximeter..");
 
@@ -138,7 +146,64 @@ void setup()
 }
 
 void loop()
-{ 
+{
+  while (SerialGPS.available() > 0)
+    if (gps.encode(SerialGPS.read()))
+    {
+      if (gps.location.isValid())
+      {
+        Latitude = gps.location.lat();
+        LatitudeString = String(Latitude , 6);
+        Longitude = gps.location.lng();
+        LongitudeString = String(Longitude , 6);
+      }
+
+      if (gps.date.isValid())
+      {
+        DateString = "";
+        date = gps.date.day();
+        month = gps.date.month();
+        year = gps.date.year();
+
+        if (date < 10)
+        DateString = '0';
+        DateString += String(date);
+
+        DateString += " / ";
+
+        if (month < 10)
+        DateString += '0';
+        DateString += String(month);
+        DateString += " / ";
+
+        if (year < 10)
+        DateString += '0';
+        DateString += String(year);
+      }
+
+      if (gps.time.isValid())
+      {
+        TimeString = "";
+        hour = gps.time.hour(); //adjust UTC
+        minute = gps.time.minute();
+        second = gps.time.second();
+    
+        if (hour < 10)
+        TimeString = '0';
+        TimeString += String(hour);
+        TimeString += " : ";
+
+        if (minute < 10)
+        TimeString += '0';
+        TimeString += String(minute);
+        TimeString += " : ";
+
+        if (second < 10)
+        TimeString += '0';
+        TimeString += String(second);
+      }
+
+    }
 
   // Make sure to call update as fast as possible
   pox.update();
@@ -152,8 +217,8 @@ void loop()
     Serial.print("bpm    SpO2:");  //"bpm / SpO2:"
     Serial.print(SPO2);
     Serial.println("%");
-//    ThingSpeak.writeField(myChannelNumber, 1, pox.getHeartRate(), myWriteAPIKey);
-//    ThingSpeak.writeField(myChannelNumber, 2, pox.getSpO2(), myWriteAPIKey);
+    //    ThingSpeak.writeField(myChannelNumber, 1, pox.getHeartRate(), myWriteAPIKey);
+    //    ThingSpeak.writeField(myChannelNumber, 2, pox.getSpO2(), myWriteAPIKey);
     tsLastReport = millis();
 
     // tambah
@@ -167,7 +232,7 @@ void loop()
     //  delay(2000);
 
 
-//    long irValue = pox.getIR();    //Reading the IR value it will permit us to know if there's a finger on the sensor or not
+    //    long irValue = pox.getIR();    //Reading the IR value it will permit us to know if there's a finger on the sensor or not
     //Also detecting a heartbeat
     //if(irValue > 7000){                                           //If a finger is detected
     display.clearDisplay();                                   //Clear the display
