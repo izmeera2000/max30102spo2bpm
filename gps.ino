@@ -3,8 +3,8 @@
 #include <ESP8266WiFi.h>
 TinyGPSPlus gps;  // The TinyGPS++ object
 SoftwareSerial ss(4, 5); // The serial connection to the GPS device
-const char* ssid = "Onlilo_SP"; //ssid of your wifi
-const char* password = "ArduinoUno"; //password of your wifi
+const char* ssid = "OPPORTUNITY"; //ssid of your wifi
+const char* password = "12345679"; //password of your wifi
 float latitude , longitude;
 int year , month , date, hour , minute , second;
 String date_str , time_str , lat_str , lng_str;
