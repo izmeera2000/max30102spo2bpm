@@ -147,7 +147,57 @@ void setup()
 
 void loop()
 {
-  while (SerialGPS.available() > 0)
+  
+
+  // Make sure to call update as fast as possible
+  pox.update();
+  float BPM = pox.getHeartRate();
+  uint8_t  SPO2 = pox.getSpO2();
+  // Asynchronously dump heart rate and oxidation levels to the serial
+  // For both, a value of 0 means "invalid"
+  if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
+    Serial.print("Heart rate:");
+    Serial.print(BPM);
+    Serial.print("bpm    SpO2:");  //"bpm / SpO2:"
+    Serial.print(SPO2);
+    Serial.println("%");
+    //    ThingSpeak.writeField(myChannelNumber, 1, pox.getHeartRate(), myWriteAPIKey);
+    //    ThingSpeak.writeField(myChannelNumber, 2, pox.getSpO2(), myWriteAPIKey);
+    tsLastReport = millis();
+
+    // tambah
+    //Thingspeak
+    //float h = dht.readHumidity();
+    //float t = dht.readTemperature();
+    //  Serial.println("Temperature: " + (String) t);
+    // Serial.println("Humidity: " + (String) h);
+    // ThingSpeak.writeField(myChannelNumber, 1, t, myWriteAPIKey);
+    // ThingSpeak.writeField(myChannelNumber, 2, h, myWriteAPIKey);
+    //  delay(2000);
+
+
+    //    long irValue = pox.getIR();    //Reading the IR value it will permit us to know if there's a finger on the sensor or not
+    //Also detecting a heartbeat
+    //if(irValue > 7000){                                           //If a finger is detected
+    display.clearDisplay();                                   //Clear the display
+    display.drawBitmap(5, 5, logo2_bmp, 24, 21, WHITE);       //Draw the first bmp picture (little heart)
+    display.setTextSize(1);                                   //Near it display the average BPM you can display the BPM if you want
+    display.setTextColor(WHITE);
+    display.setCursor(50, 0);
+    display.println("BPM");
+    display.setCursor(50, 18);
+    display.println(BPM);
+    display.setCursor(90, 0);    //80,0
+    display.println("SpO2");
+    display.setCursor(90, 18);   // 82,18
+    display.println(SPO2);
+
+    display.display();
+
+    tone(15, 1000);                                       // set(0,1000) utk nodmcu. And tone the buzzer for a 100ms you can reduce it it will be better
+    delay(100);
+    noTone(15);
+while (SerialGPS.available() > 0)
     if (gps.encode(SerialGPS.read()))
     {
       if (gps.location.isValid())
@@ -204,56 +254,6 @@ void loop()
       }
 
     }
-
-  // Make sure to call update as fast as possible
-  pox.update();
-  float BPM = pox.getHeartRate();
-  uint8_t  SPO2 = pox.getSpO2();
-  // Asynchronously dump heart rate and oxidation levels to the serial
-  // For both, a value of 0 means "invalid"
-  if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
-    Serial.print("Heart rate:");
-    Serial.print(BPM);
-    Serial.print("bpm    SpO2:");  //"bpm / SpO2:"
-    Serial.print(SPO2);
-    Serial.println("%");
-    //    ThingSpeak.writeField(myChannelNumber, 1, pox.getHeartRate(), myWriteAPIKey);
-    //    ThingSpeak.writeField(myChannelNumber, 2, pox.getSpO2(), myWriteAPIKey);
-    tsLastReport = millis();
-
-    // tambah
-    //Thingspeak
-    //float h = dht.readHumidity();
-    //float t = dht.readTemperature();
-    //  Serial.println("Temperature: " + (String) t);
-    // Serial.println("Humidity: " + (String) h);
-    // ThingSpeak.writeField(myChannelNumber, 1, t, myWriteAPIKey);
-    // ThingSpeak.writeField(myChannelNumber, 2, h, myWriteAPIKey);
-    //  delay(2000);
-
-
-    //    long irValue = pox.getIR();    //Reading the IR value it will permit us to know if there's a finger on the sensor or not
-    //Also detecting a heartbeat
-    //if(irValue > 7000){                                           //If a finger is detected
-    display.clearDisplay();                                   //Clear the display
-    display.drawBitmap(5, 5, logo2_bmp, 24, 21, WHITE);       //Draw the first bmp picture (little heart)
-    display.setTextSize(1);                                   //Near it display the average BPM you can display the BPM if you want
-    display.setTextColor(WHITE);
-    display.setCursor(50, 0);
-    display.println("BPM");
-    display.setCursor(50, 18);
-    display.println(BPM);
-    display.setCursor(90, 0);    //80,0
-    display.println("SpO2");
-    display.setCursor(90, 18);   // 82,18
-    display.println(SPO2);
-
-    display.display();
-
-    tone(15, 1000);                                       // set(0,1000) utk nodmcu. And tone the buzzer for a 100ms you can reduce it it will be better
-    delay(100);
-    noTone(15);
-
 
     if (BPM < 60)
     {
