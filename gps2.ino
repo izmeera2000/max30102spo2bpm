@@ -4,7 +4,7 @@
 #include "ThingSpeak.h"
 
 TinyGPSPlus gps;
-SoftwareSerial SerialGPS(2, 0); 
+SoftwareSerial SerialGPS(2, 0);  //rx gps d4 , tx gps d3
 
 const char* ssid = "OPPORTUNITY";
 const char* password = "12345679";
@@ -21,7 +21,7 @@ WiFiClient  client;
 //WiFiServer server(80);
 void setup()
 {  
-//  WiFi.mode(WIFI_STA);
+  WiFi.mode(WIFI_STA);
   ThingSpeak.begin(client);
   Serial.begin(115200);
   SerialGPS.begin(9600);
@@ -38,7 +38,7 @@ void setup()
 
 //  server.begin();
   Serial.println("Server started");
-//  Serial.println(WiFi.localIP());
+  Serial.println(WiFi.localIP());
 }
 
 void loop()
