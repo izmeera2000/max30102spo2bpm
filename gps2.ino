@@ -45,70 +45,27 @@ void loop()
 {
 
 
-  while (SerialGPS.available() > 0)
-    if (gps.encode(SerialGPS.read()))
+  while (SerialGPS.available() > 0) {
+    if (gps.encode(SerialGPS.read())) {
       Serial.println("Searching");
 
-  {
-    if (gps.location.isValid())
-    {
-      Latitude = gps.location.lat();
-      LatitudeString = String(Latitude , 8);
-      Longitude = gps.location.lng();
-      LongitudeString = String(Longitude , 8);
 
-      Serial.println(LatitudeString);
-      Serial.println(LongitudeString);
+      if (gps.location.isValid())
+      {
+        Latitude = gps.location.lat();
+        LatitudeString = String(Latitude , 8);
+        Longitude = gps.location.lng();
+        LongitudeString = String(Longitude , 8);
 
-      ThingSpeak.writeField(Channel_ID, 3, LatitudeString, myWriteAPIKey);
-      ThingSpeak.writeField(Channel_ID, 4, LongitudeString, myWriteAPIKey);
-      Serial.println("Sent");
+        Serial.println(LatitudeString);
+        Serial.println(LongitudeString);
+
+        ThingSpeak.writeField(Channel_ID, 3, LatitudeString, myWriteAPIKey);
+        ThingSpeak.writeField(Channel_ID, 4, LongitudeString, myWriteAPIKey);
+        Serial.println("Sent");
+      }
+
     }
-
-    //      if (gps.date.isValid())
-    //      {
-    //        DateString = "";
-    //        date = gps.date.day();
-    //        month = gps.date.month();
-    //        year = gps.date.year();
-    //
-    //        if (date < 10)
-    //        DateString = '0';
-    //        DateString += String(date);
-    //
-    //        DateString += " / ";
-    //
-    //        if (month < 10)
-    //        DateString += '0';
-    //        DateString += String(month);
-    //        DateString += " / ";
-    //
-    //        if (year < 10)
-    //        DateString += '0';
-    //        DateString += String(year);
-    //      }
-    //
-    //      if (gps.time.isValid())
-    //      {
-    //        TimeString = "";
-    //        hour = gps.time.hour(); //adjust UTC
-    //        minute = gps.time.minute();
-    //        second = gps.time.second();
-    //
-    //        if (hour < 10)
-    //        TimeString = '0';
-    //        TimeString += String(hour);
-    //        TimeString += " : ";
-    //
-    //        if (minute < 10)
-    //        TimeString += '0';
-    //        TimeString += String(minute);
-    //        TimeString += " : ";
-    //
-    //        if (second < 10)
-    //        TimeString += '0';
-    //        TimeString += String(second);
-    //      }
 
   }
   //  WiFiClient client = server.available();
