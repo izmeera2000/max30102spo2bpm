@@ -14,7 +14,8 @@
 //  * heart rate calculation
 //  * SpO2 (oxidation level) calculation
 PulseOximeter pox;
-
+const char* ssid = "OPPORTUNITY";
+const char* password = "12345679";
 uint32_t tsLastReport = 0;
 //----------- Channel details ----------------//
 unsigned long Channel_ID = 1704864; // Your Channel ID
@@ -54,6 +55,7 @@ static const unsigned char PROGMEM logo3_bmp[] =
 #define LED_pin3 D3
 #define LED_pin0 D0
 
+WiFiClient  client;
 
 
 // Callback (registered below) fired when a pulse is detected
@@ -86,6 +88,7 @@ void setup()
   } else {
     Serial.println("SUCCESS");
   }
+  ThingSpeak.begin(client);
 
   // The default current for the IR LED is 50mA and it could be changed
   //   by uncommenting the following line. Check MAX30100_Registers.h for all the
