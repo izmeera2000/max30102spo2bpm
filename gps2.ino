@@ -46,8 +46,9 @@ void loop()
 
 
   while (SerialGPS.available() > 0) {
+    Serial.println("Searching");
+
     if (gps.encode(SerialGPS.read())) {
-      Serial.println("Searching");
 
 
       if (gps.location.isValid())
