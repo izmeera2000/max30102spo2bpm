@@ -21,6 +21,9 @@ uint32_t tsLastReport = 0;
 unsigned long Channel_ID = 1704864; // Your Channel ID
 const char * myWriteAPIKey = "3VJIL0OO5404LO1Z"; //Your write API key
 //-------------------------------------------//
+String BPM, SPO2;
+
+
 
 //OLED
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -115,10 +118,13 @@ void loop()
   // Asynchronously dump heart rate and oxidation levels to the serial
   // For both, a value of 0 means "invalid"
   if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
+
+    BPM = pox.getHeartRate();
+    SPO2 = pox.getSpO2();
     Serial.print("Heart rate:");
-    Serial.print(pox.getHeartRate());
+    Serial.print(BPM);
     Serial.print("bpm    SpO2:");  //"bpm / SpO2:"
-    Serial.print(pox.getSpO2());
+    Serial.print(SPO2);
     Serial.println("%");
     tsLastReport = millis();
 
@@ -143,8 +149,8 @@ void loop()
     noTone(15);
 
 
-    ThingSpeak.writeField(Channel_ID, 1, pox.getHeartRate(), myWriteAPIKey);
-    ThingSpeak.writeField(Channel_ID, 2, pox.getSpO2(), myWriteAPIKey);
+    ThingSpeak.writeField(Channel_ID, 1, BPM, myWriteAPIKey);
+    ThingSpeak.writeField(Channel_ID, 2, SPO2, myWriteAPIKey);
     if (pox.getHeartRate() < 60)
     {
       digitalWrite(LED_pin5, HIGH);  //LED MERAH on
