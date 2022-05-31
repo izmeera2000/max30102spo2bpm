@@ -21,7 +21,7 @@ uint32_t tsLastReport = 0;
 unsigned long Channel_ID = 1704864; // Your Channel ID
 const char * myWriteAPIKey = "3VJIL0OO5404LO1Z"; //Your write API key
 //-------------------------------------------//
-String BPM, SPO2;
+float BPM, SPO2;
 
 
 
