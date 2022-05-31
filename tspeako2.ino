@@ -7,6 +7,8 @@
 #include "ThingSpeak.h"
 
 #define REPORTING_PERIOD_MS     1000
+#define REPORTING_PERIOD_MS2     15000
+
 
 // PulseOximeter is the higher level interface to the sensor
 // it offers:
@@ -148,9 +150,10 @@ void loop()
     delay(100);
     noTone(15);
 
-
+  if (millis() - tsLastReport > REPORTING_PERIOD_MS2) {
     ThingSpeak.writeField(Channel_ID, 1, BPM, myWriteAPIKey);
     ThingSpeak.writeField(Channel_ID, 2, SPO2, myWriteAPIKey);
+  }
     if (pox.getHeartRate() < 60)
     {
       digitalWrite(LED_pin5, HIGH);  //LED MERAH on
