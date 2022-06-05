@@ -126,12 +126,12 @@ void setup()
   // Initialize the PulseOximeter instance
   // Failures are generally due to an improper I2C wiring, missing power supply
   // or wrong target chip
-  if (!pox.begin()) {
-    Serial.println("FAILED");
-    for (;;);
-  } else {
-    Serial.println("SUCCESS");
-  }
+//  if (!pox.begin()) {
+//    Serial.println("FAILED");
+//    for (;;);
+//  } else {
+//    Serial.println("SUCCESS");
+//  }
 
   // The default current for the IR LED is 50mA and it could be changed
   //   by uncommenting the following line. Check MAX30100_Registers.h for all the
@@ -177,6 +177,7 @@ void loop()
       }
 
     }
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
     String httpRequestData = "api_key=" + apiKeyValue + "&sensor=" + sensorName
                              + "&location=" + LatitudeString + "," + LongitudeString + "&value1=" + pox.getHeartRate()
@@ -185,9 +186,27 @@ void loop()
     http.begin(client, serverName);
 
     // Specify content-type header
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
     tsLastReport = millis();
-
+    int httpResponseCode = http.POST(httpRequestData);
+     
+    // If you need an HTTP request with a content type: text/plain
+    //http.addHeader("Content-Type", "text/plain");
+    //int httpResponseCode = http.POST("Hello, World!");
+    
+    // If you need an HTTP request with a content type: application/json, use the following:
+    //http.addHeader("Content-Type", "application/json");
+    //int httpResponseCode = http.POST("{\"value1\":\"19\",\"value2\":\"67\",\"value3\":\"78\"}");
+        
+    if (httpResponseCode>0) {
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+    }
+    else {
+      Serial.print("Error code: ");
+      Serial.println(httpResponseCode);
+    }
+    // Free resources
+    http.end();
 
 
     //long irValue = pox.getIR();    //Reading the IR value it will permit us to know if there's a finger on the sensor or not
