@@ -54,6 +54,7 @@ float Latitude , Longitude;
 String  LatitudeString , LongitudeString;
 String sensorName = "OXI";
 String sensorLocation = "Office";
+
 //OLED
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels 32
@@ -126,12 +127,12 @@ void setup()
   // Initialize the PulseOximeter instance
   // Failures are generally due to an improper I2C wiring, missing power supply
   // or wrong target chip
-  if (!pox.begin()) {
-    Serial.println("FAILED");
-    for (;;);
-  } else {
-    Serial.println("SUCCESS");
-  }
+//  if (!pox.begin()) {
+//    Serial.println("FAILED");
+//    for (;;);
+//  } else {
+//    Serial.println("SUCCESS");
+//  }
 
   // The default current for the IR LED is 50mA and it could be changed
   //   by uncommenting the following line. Check MAX30100_Registers.h for all the
@@ -248,4 +249,3 @@ void loop()
     }
   }
 }
-
