@@ -44,6 +44,7 @@ uint32_t tsLastReport = 0;
 //wifi
 const char *ssid =  "OPPORTUNITY";
 const char *pass =  "12345679";
+HTTPClient http;
 
 WiFiClient client;
 //long myChannelNumber = 1704864;
@@ -162,8 +163,7 @@ void loop()
     Serial.print("bpm    SpO2:");  //"bpm / SpO2:"
     Serial.print(pox.getSpO2());
     Serial.println("%");
-    WiFiClient client;
-    HTTPClient http;
+    //    WiFiClient client;
     //    Serial.print(serverName);
     if (gps.encode(SerialGPS.read())) {
       Serial.println("Searching");
@@ -189,16 +189,16 @@ void loop()
     // Specify content-type header
     tsLastReport = millis();
     int httpResponseCode = http.POST(httpRequestData);
-     
+
     // If you need an HTTP request with a content type: text/plain
     //http.addHeader("Content-Type", "text/plain");
     //int httpResponseCode = http.POST("Hello, World!");
-    
+
     // If you need an HTTP request with a content type: application/json, use the following:
     //http.addHeader("Content-Type", "application/json");
     //int httpResponseCode = http.POST("{\"value1\":\"19\",\"value2\":\"67\",\"value3\":\"78\"}");
-        
-    if (httpResponseCode>0) {
+
+    if (httpResponseCode > 0) {
       Serial.print("HTTP Response code: ");
       Serial.println(httpResponseCode);
     }
