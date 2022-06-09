@@ -36,6 +36,7 @@
 //  * heart rate calculation
 //  * SpO2 (oxidation level) calculation
 PulseOximeter pox;
+MAX30100 maxim;
 
 TinyGPSPlus gps;
 SoftwareSerial SerialGPS(2, 0);  //rx gps = d4 , tx gps =d3
@@ -55,7 +56,7 @@ float Latitude , Longitude;
 String  LatitudeString , LongitudeString;
 String sensorName = "OXI";
 String sensorLocation = "Office";
-
+String BPM, SPO2;
 //OLED
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels 32
@@ -138,7 +139,7 @@ void setup()
   // The default current for the IR LED is 50mA and it could be changed
   //   by uncommenting the following line. Check MAX30100_Registers.h for all the
   //   available options.
-  // pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);
+  //   pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);
 
   // Register a callback for the beat detection
   pox.setOnBeatDetectedCallback(onBeatDetected);
@@ -147,6 +148,7 @@ void setup()
   pinMode(LED_pin7, OUTPUT);  // declara pin samada input @ output
   pinMode(LED_pin6, OUTPUT);
   pinMode(LED_pin5, OUTPUT);
+  http.begin(client, serverName);
 
 }
 
@@ -158,13 +160,54 @@ void loop()
   // Asynchronously dump heart rate and oxidation levels to the serial
   // For both, a value of 0 means "invalid"
   if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
+    BPM = String(pox.getHeartRate());
+    SPO2 = String(pox.getSpO2());
     Serial.print("Heart rate:");
-    Serial.print(pox.getHeartRate());
+    Serial.print(BPM);
     Serial.print("bpm    SpO2:");  //"bpm / SpO2:"
-    Serial.print(pox.getSpO2());
+    Serial.print(SPO2);
     Serial.println("%");
     //    WiFiClient client;
     //    Serial.print(serverName);
+
+
+    //long irValue = pox.getIR();    //Reading the IR value it will permit us to know if there's a finger on the sensor or not
+    //Also detecting a heartbeat
+    //if(irValue > 7000){                                           //If a finger is detected
+    display.clearDisplay();                                   //Clear the display
+    display.drawBitmap(5, 5, logo2_bmp, 24, 21, WHITE);       //Draw the first bmp picture (little heart)
+    display.setTextSize(1);                                   //Near it display the average BPM you can display the BPM if you want
+    display.setTextColor(WHITE);
+    display.setCursor(50, 0);
+    display.println("BPM");
+    display.setCursor(50, 18);
+    display.println( BPM);
+    display.setCursor(90, 0);    //80,0
+    display.println("SpO2");
+    display.setCursor(90, 18);   // 82,18
+    display.println(SPO2);
+
+    display.display();
+
+//
+//    if ( BPM < 60)
+//    {
+//      digitalWrite(LED_pin5, HIGH);  //LED MERAH on
+//      digitalWrite(LED_pin7, LOW);  //LED HIJAU on
+//      digitalWrite(LED_pin6, LOW);  //LED KUNING on
+//    }
+//    if ( BPM > 100)
+//    {
+//      digitalWrite(LED_pin6, HIGH);  //LED KUNING on
+//      digitalWrite(LED_pin5, LOW);  //LED MERAH on
+//      digitalWrite(LED_pin7, LOW);  //LED HIJAU on
+//    }
+//    if ( BPM > 60 &&  BPM < 100)
+//    {
+//      digitalWrite(LED_pin7, HIGH);  //LED HIJAU on
+//      digitalWrite(LED_pin5, LOW);  //LED MERAH on
+//      digitalWrite(LED_pin6, LOW);  //LED KUNING on
+//    }
     if (gps.encode(SerialGPS.read())) {
       Serial.println("Searching");
 
@@ -184,7 +227,6 @@ void loop()
                              + "&location=" + LatitudeString + "," + LongitudeString + "&value1=" + pox.getHeartRate()
                              + "&value2=" + pox.getSpO2();
     // Your Domain name with URL path or IP address with path
-    http.begin(client, serverName);
 
     // Specify content-type header
     tsLastReport = millis();
@@ -208,44 +250,6 @@ void loop()
     }
     // Free resources
     http.end();
-
-
-    //long irValue = pox.getIR();    //Reading the IR value it will permit us to know if there's a finger on the sensor or not
-    //Also detecting a heartbeat
-    //if(irValue > 7000){                                           //If a finger is detected
-    display.clearDisplay();                                   //Clear the display
-    display.drawBitmap(5, 5, logo2_bmp, 24, 21, WHITE);       //Draw the first bmp picture (little heart)
-    display.setTextSize(1);                                   //Near it display the average BPM you can display the BPM if you want
-    display.setTextColor(WHITE);
-    display.setCursor(50, 0);
-    display.println("BPM");
-    display.setCursor(50, 18);
-    display.println(pox.getHeartRate());
-    display.setCursor(90, 0);    //80,0
-    display.println("SpO2");
-    display.setCursor(90, 18);   // 82,18
-    display.println(pox.getSpO2());
-
-    display.display();
-
-
-    if (pox.getHeartRate() < 60)
-    {
-      digitalWrite(LED_pin5, HIGH);  //LED MERAH on
-      digitalWrite(LED_pin7, LOW);  //LED HIJAU on
-      digitalWrite(LED_pin6, LOW);  //LED KUNING on
-    }
-    if (pox.getHeartRate() > 100)
-    {
-      digitalWrite(LED_pin6, HIGH);  //LED KUNING on
-      digitalWrite(LED_pin5, LOW);  //LED MERAH on
-      digitalWrite(LED_pin7, LOW);  //LED HIJAU on
-    }
-    if (pox.getHeartRate() > 60 && pox.getHeartRate() < 100)
-    {
-      digitalWrite(LED_pin7, HIGH);  //LED HIJAU on
-      digitalWrite(LED_pin5, LOW);  //LED MERAH on
-      digitalWrite(LED_pin6, LOW);  //LED KUNING on
-    }
+    maxim.resetFifo();
   }
 }
