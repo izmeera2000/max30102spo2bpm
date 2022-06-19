@@ -16,9 +16,9 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#define BLYNK_TEMPLATE_ID "TMPLfXdPfUvk"
+#define BLYNK_TEMPLATE_ID "TMPLl6VrdVrZ"
 #define BLYNK_DEVICE_NAME "Quickstart Template"
-#define BLYNK_AUTH_TOKEN "sHkG41yWsWnmWX04f3XTRcR6BkS0_qaa"
+#define BLYNK_AUTH_TOKEN "Ic_TDCxGxuO7ITkNO1wyOaEOwJQuzrgY"
 
 
 #include <Adafruit_GFX.h>        //OLED libraries
@@ -26,7 +26,9 @@
 #include <Wire.h>
 #include "MAX30100_PulseOximeter.h"
 #include <ESP8266WiFi.h>  // wifi
-
+#include <Blynk.h>
+#include <TinyGPS++.h>
+#include <SoftwareSerial.h>
 #include <BlynkSimpleEsp8266.h>
 
 #define REPORTING_PERIOD_MS     1000
@@ -41,8 +43,9 @@ PulseOximeter pox;
 uint32_t tsLastReport = 0;
 
 //wifi
-const char *ssid =  "KOMPUTER";
-const char *pass =  "";
+const char *ssid =  "afa2020_2.4Ghz@unifi";
+const char *pass =  "vae585910";
+char auth[] = BLYNK_AUTH_TOKEN;
 
 WiFiClient client;
 
@@ -159,61 +162,61 @@ void loop()
 
 
 
-    long irValue = pox.getIR();    //Reading the IR value it will permit us to know if there's a finger on the sensor or not
+    //    long irValue = pox.getIR();    //Reading the IR value it will permit us to know if there's a finger on the sensor or not
     //Also detecting a heartbeat
-    if (irValue > 7000) {                                         //If a finger is detected
-      display.clearDisplay();                                   //Clear the display
-      display.drawBitmap(5, 5, logo2_bmp, 24, 21, WHITE);       //Draw the first bmp picture (little heart)
-      display.setTextSize(1);                                   //Near it display the average BPM you can display the BPM if you want
-      display.setTextColor(WHITE);
-      display.setCursor(50, 0);
-      display.println("BPM");
-      display.setCursor(50, 18);
-      display.println(pox.getHeartRate());
-      display.setCursor(90, 0);    //80,0
-      display.println("SpO2");
-      display.setCursor(90, 18);   // 82,18
-      display.println(pox.getSpO2());
+    //    if (ir > 7000) {                                         //If a finger is detected
+    display.clearDisplay();                                   //Clear the display
+    display.drawBitmap(5, 5, logo2_bmp, 24, 21, WHITE);       //Draw the first bmp picture (little heart)
+    display.setTextSize(1);                                   //Near it display the average BPM you can display the BPM if you want
+    display.setTextColor(WHITE);
+    display.setCursor(50, 0);
+    display.println("BPM");
+    display.setCursor(50, 18);
+    display.println(pox.getHeartRate());
+    display.setCursor(90, 0);    //80,0
+    display.println("SpO2");
+    display.setCursor(90, 18);   // 82,18
+    display.println(pox.getSpO2());
 
-      display.display();
+    display.display();
 
-      Serial.print("Heart rate:");
-      Serial.print(pox.getHeartRate());
-      Serial.print("bpm    SpO2:");  //"bpm / SpO2:"
-      Serial.print(pox.getSpO2());
-      Serial.println("%");
-      Blynk.virtualWrite(V5, pox.getHeartRate());
-      Blynk.virtualWrite(V6, pox.getSpO2());
-      if (gps.encode(SerialGPS.read()))
+    Serial.print("Heart rate:");
+    Serial.print(pox.getHeartRate());
+    Serial.print("bpm    SpO2:");  //"bpm / SpO2:"
+    Serial.print(pox.getSpO2());
+    Serial.println("%");
+    Blynk.virtualWrite(V5, pox.getHeartRate());
+    Blynk.virtualWrite(V6, pox.getSpO2());
+    if (gps.encode(SerialGPS.read()))
+    {
+      if (gps.location.isValid())
       {
-        if (gps.location.isValid())
-        {
-          Latitude = gps.location.lat();
-          Longitude = gps.location.lng();
-          Blynk.virtualWrite(V1, Latitude);
-          Blynk.virtualWrite(V2, Longitude);
+        Latitude = gps.location.lat();
+        Longitude = gps.location.lng();
+        Blynk.virtualWrite(V7, Latitude);
+        Blynk.virtualWrite(V8, Longitude);
 
-        }
-      }
-
-      if (pox.getHeartRate() < 60)
-      {
-        digitalWrite(LED_pin5, HIGH);  //LED MERAH on
-        digitalWrite(LED_pin7, LOW);  //LED HIJAU on
-        digitalWrite(LED_pin6, LOW);  //LED KUNING on
-      }
-      if (pox.getHeartRate() > 100)
-      {
-        digitalWrite(LED_pin6, HIGH);  //LED KUNING on
-        digitalWrite(LED_pin5, LOW);  //LED MERAH on
-        digitalWrite(LED_pin7, LOW);  //LED HIJAU on
-      }
-      if (pox.getHeartRate() > 60 && pox.getHeartRate() < 100)
-      {
-        digitalWrite(LED_pin7, HIGH);  //LED HIJAU on
-        digitalWrite(LED_pin5, LOW);  //LED MERAH on
-        digitalWrite(LED_pin6, LOW);  //LED KUNING on
       }
     }
+
+    if (pox.getHeartRate() < 60)
+    {
+      digitalWrite(LED_pin5, HIGH);  //LED MERAH on
+      digitalWrite(LED_pin7, LOW);  //LED HIJAU on
+      digitalWrite(LED_pin6, LOW);  //LED KUNING on
+    }
+    if (pox.getHeartRate() > 100)
+    {
+      digitalWrite(LED_pin6, HIGH);  //LED KUNING on
+      digitalWrite(LED_pin5, LOW);  //LED MERAH on
+      digitalWrite(LED_pin7, LOW);  //LED HIJAU on
+    }
+    if (pox.getHeartRate() > 60 && pox.getHeartRate() < 100)
+    {
+      digitalWrite(LED_pin7, HIGH);  //LED HIJAU on
+      digitalWrite(LED_pin5, LOW);  //LED MERAH on
+      digitalWrite(LED_pin6, LOW);  //LED KUNING on
+    }
+
   }
 }
