@@ -16,9 +16,9 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#define BLYNK_TEMPLATE_ID "TMPLl6VrdVrZ"
-#define BLYNK_DEVICE_NAME "Quickstart Template"
-#define BLYNK_AUTH_TOKEN "Ic_TDCxGxuO7ITkNO1wyOaEOwJQuzrgY"
+#define BLYNK_TEMPLATE_ID "TMPLd26xKDoS"
+#define BLYNK_DEVICE_NAME "Monitoring System"
+#define BLYNK_AUTH_TOKEN "ec1-xwth3S-LfperNwrpOk0dUgHCfyNF"
 
 
 #include <Adafruit_GFX.h>        //OLED libraries
@@ -49,8 +49,8 @@ char auth[] = BLYNK_AUTH_TOKEN;
 
 WiFiClient client;
 
-TinyGPSPlus gps;
-SoftwareSerial SerialGPS(4, 5);
+//TinyGPSPlus gps;
+//SoftwareSerial SerialGPS(4, 5);
 #define BLYNK_PRINT Serial
 
 float Latitude , Longitude;
@@ -99,7 +99,7 @@ void onBeatDetected()
 void setup()
 {
   Serial.begin(115200);
-  SerialGPS.begin(9600);
+//  SerialGPS.begin(9600);
   Blynk.begin(auth, ssid, pass);
 
   //Thingspeak
@@ -125,12 +125,12 @@ void setup()
   // Initialize the PulseOximeter instance
   // Failures are generally due to an improper I2C wiring, missing power supply
   // or wrong target chip
-  if (!pox.begin()) {
-    Serial.println("FAILED");
-    for (;;);
-  } else {
-    Serial.println("SUCCESS");
-  }
+//  if (!pox.begin()) {
+//    Serial.println("FAILED");
+//    for (;;);
+//  } else {
+//    Serial.println("SUCCESS");
+//  }
 
   // The default current for the IR LED is 50mA and it could be changed
   //   by uncommenting the following line. Check MAX30100_Registers.h for all the
@@ -187,17 +187,17 @@ void loop()
     Serial.println("%");
     Blynk.virtualWrite(V5, pox.getHeartRate());
     Blynk.virtualWrite(V6, pox.getSpO2());
-    if (gps.encode(SerialGPS.read()))
-    {
-      if (gps.location.isValid())
-      {
-        Latitude = gps.location.lat();
-        Longitude = gps.location.lng();
-        Blynk.virtualWrite(V7, Latitude);
-        Blynk.virtualWrite(V8, Longitude);
-
-      }
-    }
+//    if (gps.encode(SerialGPS.read()))
+//    {
+//      if (gps.location.isValid())
+//      {
+//        Latitude = gps.location.lat();
+//        Longitude = gps.location.lng();
+//        Blynk.virtualWrite(V7, Latitude);
+//        Blynk.virtualWrite(V8, Longitude);
+//
+//      }
+//    }
 
     if (pox.getHeartRate() < 60)
     {
