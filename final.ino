@@ -90,6 +90,7 @@ static const unsigned char PROGMEM logo3_bmp[] =
 // Callback (registered below) fired when a pulse is detected
 void onBeatDetected()
 {
+    display.drawBitmap(5, 5, logo3_bmp, 24, 21, WHITE);       //Draw the first bmp picture (little heart)
 
   tone(15, 1000);                                       // set(0,1000) utk nodmcu. And tone the buzzer for a 100ms you can reduce it it will be better
   delay(100);
@@ -125,12 +126,12 @@ void setup()
   // Initialize the PulseOximeter instance
   // Failures are generally due to an improper I2C wiring, missing power supply
   // or wrong target chip
-//  if (!pox.begin()) {
-//    Serial.println("FAILED");
-//    for (;;);
-//  } else {
-//    Serial.println("SUCCESS");
-//  }
+  if (!pox.begin()) {
+    Serial.println("FAILED");
+    for (;;);
+  } else {
+    Serial.println("SUCCESS");
+  }
 
   // The default current for the IR LED is 50mA and it could be changed
   //   by uncommenting the following line. Check MAX30100_Registers.h for all the
